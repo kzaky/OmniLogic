@@ -1,0 +1,56 @@
+{
+  "name": "homebridge-omnilogic-pool",
+  "displayName": "Hayward OmniLogic Pool",
+  "version": "0.1.0",
+  "description": "Homebridge plugin for the Hayward OmniLogic pool/spa controller.",
+  "license": "Apache-2.0",
+  "author": "kzaky",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kzaky/OmniLogic.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kzaky/OmniLogic/issues"
+  },
+  "homepage": "https://github.com/kzaky/OmniLogic#readme",
+  "keywords": [
+    "homebridge-plugin",
+    "hayward",
+    "omnilogic",
+    "pool",
+    "spa",
+    "homekit"
+  ],
+  "main": "dist/index.js",
+  "engines": {
+    "node": "^18.20.0 || ^20.10.0 || ^22.0.0",
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
+  },
+  "scripts": {
+    "lint": "eslint src/**/*.ts",
+    "build": "rimraf ./dist && tsc",
+    "watch": "npm run build && nodemon",
+    "prepublishOnly": "npm run lint && npm run build"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "fast-xml-parser": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "eslint": "^8.57.0",
+    "homebridge": "^1.8.4",
+    "nodemon": "^3.1.4",
+    "rimraf": "^5.0.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
+  },
+  "files": [
+    "dist",
+    "config.schema.json",
+    "LICENSE",
+    "README.md"
+  ]
+}

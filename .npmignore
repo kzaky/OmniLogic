@@ -1,0 +1,10 @@
+src/
+.github/
+.vscode/
+node_modules/
+test/
+tsconfig.json
+.eslintrc.json
+nodemon.json
+*.log
+.env

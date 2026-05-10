@@ -1,0 +1,71 @@
+{
+  "pluginAlias": "OmniLogicPool",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Hayward OmniLogic Pool plugin. Enter the same credentials you use in the OmniLogic mobile app.",
+  "footerDisplay": "For help, file an issue at https://github.com/kzaky/OmniLogic/issues.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "default": "OmniLogic Pool",
+        "required": true
+      },
+      "username": {
+        "title": "OmniLogic Username (email)",
+        "type": "string",
+        "format": "email",
+        "required": true
+      },
+      "password": {
+        "title": "OmniLogic Password",
+        "type": "string",
+        "required": true
+      },
+      "pollIntervalSeconds": {
+        "title": "Telemetry Poll Interval (seconds)",
+        "type": "integer",
+        "default": 30,
+        "minimum": 10,
+        "maximum": 600,
+        "description": "How often to poll OmniLogic for live state. Lower values are more responsive but increase load."
+      },
+      "temperatureUnits": {
+        "title": "Temperature Units",
+        "type": "string",
+        "default": "F",
+        "oneOf": [
+          { "title": "Fahrenheit", "enum": ["F"] },
+          { "title": "Celsius", "enum": ["C"] }
+        ]
+      },
+      "exposeChlorinator": {
+        "title": "Expose Chlorinator as Switch",
+        "type": "boolean",
+        "default": true
+      },
+      "exposePumps": {
+        "title": "Expose Pumps",
+        "type": "boolean",
+        "default": true
+      },
+      "exposeLights": {
+        "title": "Expose Lights",
+        "type": "boolean",
+        "default": true
+      },
+      "exposeHeaters": {
+        "title": "Expose Heaters as Thermostats",
+        "type": "boolean",
+        "default": true
+      },
+      "debug": {
+        "title": "Debug Logging",
+        "type": "boolean",
+        "default": false
+      }
+    }
+  }
+}
