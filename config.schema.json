@@ -1,0 +1,86 @@
+{
+  "pluginAlias": "OmniLogicPool",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Hayward OmniLogic Pool plugin. Enter the same credentials you use in the OmniLogic mobile app.",
+  "footerDisplay": "For help, file an issue at https://github.com/kzaky/OmniLogic/issues.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "default": "OmniLogic Pool",
+        "required": true
+      },
+      "username": {
+        "title": "OmniLogic Username (email)",
+        "type": "string",
+        "format": "email",
+        "required": true
+      },
+      "password": {
+        "title": "OmniLogic Password",
+        "type": "string",
+        "format": "password",
+        "required": true,
+        "description": "Stored in plain text in Homebridge config.json. Treat your Homebridge config file accordingly."
+      },
+      "pollIntervalSeconds": {
+        "title": "Telemetry Poll Interval (seconds)",
+        "type": "integer",
+        "default": 30,
+        "minimum": 15,
+        "maximum": 600,
+        "description": "How often to poll OmniLogic for live state. Values below 30s may trigger rate limiting from the Hayward cloud."
+      },
+      "temperatureUnits": {
+        "title": "Temperature Units",
+        "type": "string",
+        "default": "F",
+        "oneOf": [
+          { "title": "Fahrenheit", "enum": ["F"] },
+          { "title": "Celsius", "enum": ["C"] }
+        ]
+      },
+      "exposeChlorinator": {
+        "title": "Expose Chlorinator as Switch",
+        "type": "boolean",
+        "default": true
+      },
+      "exposePumps": {
+        "title": "Expose Pumps",
+        "type": "boolean",
+        "default": true
+      },
+      "exposeLights": {
+        "title": "Expose Lights",
+        "type": "boolean",
+        "default": true
+      },
+      "exposeHeaters": {
+        "title": "Expose Heaters as Thermostats",
+        "type": "boolean",
+        "default": true
+      },
+      "hideEquipmentIds": {
+        "title": "Hide Equipment IDs",
+        "type": "array",
+        "items": { "type": "integer" },
+        "description": "OmniLogic system IDs to suppress from HomeKit. Look at the Homebridge log on startup to see the discovered IDs."
+      },
+      "debug": {
+        "title": "Debug Logging",
+        "type": "boolean",
+        "default": false,
+        "description": "Logs full SOAP request/response XML. Passwords and tokens are redacted automatically."
+      },
+      "disableLogs": {
+        "title": "Disable All Plugin Logs",
+        "type": "boolean",
+        "default": false,
+        "description": "Suppress every log line emitted by this plugin. Use only if you've already validated the setup."
+      }
+    }
+  }
+}
