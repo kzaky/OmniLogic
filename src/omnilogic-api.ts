@@ -32,6 +32,17 @@ export interface TelemetrySnapshot {
 
 const TOKEN_TTL_MS = 6 * 60 * 60 * 1000;
 
+/** Default "no schedule" trailing parameters shared by SetUI*Cmd calls. */
+const NO_SCHEDULE: RequestParameter[] = [
+  { name: 'IsCountDownTimer', dataType: 'bool', value: false },
+  { name: 'StartTimeHours', dataType: 'int', value: 0 },
+  { name: 'StartTimeMinutes', dataType: 'int', value: 0 },
+  { name: 'EndTimeHours', dataType: 'int', value: 0 },
+  { name: 'EndTimeMinutes', dataType: 'int', value: 0 },
+  { name: 'DaysActive', dataType: 'int', value: 0 },
+  { name: 'Recurring', dataType: 'bool', value: false },
+];
+
 /**
  * SOAP client for the Hayward OmniLogic Home Automation Service.
  * Owns the HTTP transport, login state, and token cache. All pure
@@ -220,13 +231,7 @@ export class OmniLogicApi {
       { name: 'PoolID', dataType: 'int', value: bowId },
       { name: 'EquipmentID', dataType: 'int', value: equipmentId },
       { name: 'IsOn', dataType: 'int', value: on ? 100 : 0 },
-      { name: 'IsCountDownTimer', dataType: 'bool', value: false },
-      { name: 'StartTimeHours', dataType: 'int', value: 0 },
-      { name: 'StartTimeMinutes', dataType: 'int', value: 0 },
-      { name: 'EndTimeHours', dataType: 'int', value: 0 },
-      { name: 'EndTimeMinutes', dataType: 'int', value: 0 },
-      { name: 'DaysActive', dataType: 'int', value: 0 },
-      { name: 'Recurring', dataType: 'bool', value: false },
+      ...NO_SCHEDULE,
     ]);
   }
 
@@ -243,13 +248,7 @@ export class OmniLogicApi {
       { name: 'PoolID', dataType: 'int', value: bowId },
       { name: 'FilterID', dataType: 'int', value: filterId },
       { name: 'Speed', dataType: 'int', value: clamped },
-      { name: 'IsCountDownTimer', dataType: 'bool', value: false },
-      { name: 'StartTimeHours', dataType: 'int', value: 0 },
-      { name: 'StartTimeMinutes', dataType: 'int', value: 0 },
-      { name: 'EndTimeHours', dataType: 'int', value: 0 },
-      { name: 'EndTimeMinutes', dataType: 'int', value: 0 },
-      { name: 'DaysActive', dataType: 'int', value: 0 },
-      { name: 'Recurring', dataType: 'bool', value: false },
+      ...NO_SCHEDULE,
     ]);
   }
 
@@ -268,13 +267,7 @@ export class OmniLogicApi {
       { name: 'Speed', dataType: 'byte', value: 4 },
       { name: 'Brightness', dataType: 'byte', value: 4 },
       { name: 'Reserved', dataType: 'byte', value: 0 },
-      { name: 'IsCountDownTimer', dataType: 'bool', value: false },
-      { name: 'StartTimeHours', dataType: 'int', value: 0 },
-      { name: 'StartTimeMinutes', dataType: 'int', value: 0 },
-      { name: 'EndTimeHours', dataType: 'int', value: 0 },
-      { name: 'EndTimeMinutes', dataType: 'int', value: 0 },
-      { name: 'DaysActive', dataType: 'int', value: 0 },
-      { name: 'Recurring', dataType: 'bool', value: false },
+      ...NO_SCHEDULE,
     ]);
   }
 

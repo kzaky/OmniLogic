@@ -40,19 +40,13 @@ export class LightAccessory extends BaseAccessory {
   private async handleOnSet(value: CharacteristicValue): Promise<void> {
     const on = !!value;
     this.isOn = on;
-    await this.runSet(async () => {
-      try {
-        await this.platform.api.setLightShow(
-          this.ctx.mspSystemId,
-          this.ctx.bowId,
-          this.ctx.equipmentId,
-          on ? this.lastShow : 0,
-        );
-        this.requestPostSetRefresh();
-      } catch (err: any) {
-        this.platform.log.error('Light set failed:', err.message);
-        throw err;
-      }
-    });
+    await this.runApiSet('Light set', () =>
+      this.platform.api.setLightShow(
+        this.ctx.mspSystemId,
+        this.ctx.bowId,
+        this.ctx.equipmentId,
+        on ? this.lastShow : 0,
+      ),
+    );
   }
 }

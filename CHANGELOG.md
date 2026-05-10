@@ -17,18 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `publish.yml` accepts a `workflow_dispatch` with a `dry-run` boolean
   input so the publish workflow can be exercised end-to-end without
   pushing to npm.
-
-### Changed
-
-- Extracted pure XML/SOAP helpers from `omnilogic-api.ts` into a new
-  `xml-utils.ts` module. `OmniLogicApi` is now ~40% smaller and
-  focused on transport + token state; the parsing logic is testable
-  in isolation. No behaviour change for consumers.
-- ESLint rule `quotes` allows template literals (`avoidEscape` only
-  covered double quotes).
-
-### Added
-
 - Disk-backed token cache (`omnilogic-token.json` in Homebridge's plugin
   persist path) so the plugin doesn't re-authenticate on every Homebridge
   restart. Stored with `0600` file permissions and bound to the configured
@@ -44,6 +32,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Extracted pure XML/SOAP helpers from `omnilogic-api.ts` into a new
+  `xml-utils.ts` module. `OmniLogicApi` is now ~40% smaller and
+  focused on transport + token state; the parsing logic is testable
+  in isolation. No behaviour change for consumers.
+- Collapsed five duplicated `try { setX(); refresh } catch { log; throw }`
+  blocks across the accessory files into a single `BaseAccessory.runApiSet`
+  helper.
+- Pulled the 8-parameter "no schedule" trailing block out of three SET
+  methods into a shared `NO_SCHEDULE` constant.
+- ESLint rule `quotes` allows template literals (`avoidEscape` only
+  covered double quotes).
 - `engines.node` bumped to `^20.10.0 || ^22 || ^24`. Node 18 is no longer
   supported.
 - Dev tooling: dropped `nodemon` in favour of `tsc --watch` + Node's own

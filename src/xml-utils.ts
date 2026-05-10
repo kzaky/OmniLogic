@@ -267,7 +267,7 @@ export function isAuthFailureXml(xml: string): boolean {
   return /Token|Login|Unauthorized|Authentication/i.test(xml);
 }
 
-export function collectArray(node: any, key: string): any[] {
+function collectArray(node: any, key: string): any[] {
   if (!node || typeof node !== 'object') return [];
   const direct = node[key];
   if (direct !== undefined) {

@@ -71,6 +71,23 @@ export abstract class BaseAccessory {
     this.platform.scheduleTelemetryRefresh();
   }
 
+  /**
+   * Standard wrapper for a HomeKit SET handler: serialize via the
+   * per-accessory mutex, log+rethrow on failure, refresh telemetry on
+   * success.
+   */
+  protected runApiSet(label: string, fn: () => Promise<void>): Promise<void> {
+    return this.runSet(async () => {
+      try {
+        await fn();
+        this.requestPostSetRefresh();
+      } catch (err: any) {
+        this.platform.log.error(`${label} failed:`, err.message);
+        throw err;
+      }
+    });
+  }
+
   abstract setup(): void;
   abstract onTelemetry(snap: TelemetrySnapshot): void;
 }

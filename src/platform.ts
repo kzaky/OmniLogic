@@ -337,10 +337,7 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
   }
 
   private startPolling(): void {
-    const seconds = Math.max(
-      15,
-      this.config.pollIntervalSeconds ?? DEFAULT_POLL_SECONDS,
-    );
+    const seconds = this.config.pollIntervalSeconds ?? DEFAULT_POLL_SECONDS;
     this.pollTimer = setInterval(async () => {
       try {
         await this.refreshTelemetry();
