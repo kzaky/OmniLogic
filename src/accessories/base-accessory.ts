@@ -67,8 +67,8 @@ export abstract class BaseAccessory {
    * Kick a telemetry refresh shortly after a successful SET so HomeKit
    * doesn't show stale state for the full poll interval.
    */
-  protected requestPostSetRefresh(delayMs = 1500): void {
-    this.platform.scheduleTelemetryRefresh(delayMs);
+  protected requestPostSetRefresh(): void {
+    this.platform.scheduleTelemetryRefresh();
   }
 
   abstract setup(): void;
