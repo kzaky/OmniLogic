@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Test suite (`node:test` via `tsx`) covering the XML/SOAP helpers
+  (redaction, parser variants, topology builder, telemetry indexing,
+  auth-failure detection) and `TokenStore` (file mode, round-trip,
+  expiry, wrong-user rejection, corrupted file, atomic write). `npm
+  test` runs locally and on CI for every Node version in the matrix.
+- `publish.yml` accepts a `workflow_dispatch` with a `dry-run` boolean
+  input so the publish workflow can be exercised end-to-end without
+  pushing to npm.
+
+### Changed
+
+- Extracted pure XML/SOAP helpers from `omnilogic-api.ts` into a new
+  `xml-utils.ts` module. `OmniLogicApi` is now ~40% smaller and
+  focused on transport + token state; the parsing logic is testable
+  in isolation. No behaviour change for consumers.
+- ESLint rule `quotes` allows template literals (`avoidEscape` only
+  covered double quotes).
+
+### Added
+
 - Disk-backed token cache (`omnilogic-token.json` in Homebridge's plugin
   persist path) so the plugin doesn't re-authenticate on every Homebridge
   restart. Stored with `0600` file permissions and bound to the configured

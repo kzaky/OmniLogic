@@ -10,7 +10,7 @@
     "plugin:@typescript-eslint/recommended"
   ],
   "rules": {
-    "quotes": ["warn", "single", { "avoidEscape": true }],
+    "quotes": ["warn", "single", { "avoidEscape": true, "allowTemplateLiterals": true }],
     "semi": ["warn", "always"],
     "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
     "@typescript-eslint/no-explicit-any": "off"
