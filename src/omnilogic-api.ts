@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { XMLParser } from 'fast-xml-parser';
 import { Logger } from 'homebridge';
 import { OMNILOGIC_ENDPOINT, REQUEST_TIMEOUT_MS } from './settings';
+import { TokenStore } from './token-store';
 
 type ParamValue = string | number | boolean;
 type ParamDataType =
@@ -69,12 +70,14 @@ export class OmniLogicApi {
   private userId: string | null = null;
   private tokenExpiresAt = 0;
   private loginInFlight: Promise<void> | null = null;
+  private cacheLoaded = false;
 
   constructor(
     private readonly username: string,
     private readonly password: string,
     private readonly log: Logger,
     private readonly debug = false,
+    private readonly tokenStore: TokenStore | null = null,
   ) {
     this.http = axios.create({
       baseURL: OMNILOGIC_ENDPOINT,
@@ -97,6 +100,16 @@ export class OmniLogicApi {
   }
 
   async ensureLogin(): Promise<void> {
+    if (!this.cacheLoaded && this.tokenStore) {
+      this.cacheLoaded = true;
+      const cached = await this.tokenStore.load(this.username);
+      if (cached) {
+        this.token = cached.token;
+        this.userId = cached.userId;
+        this.tokenExpiresAt = cached.expiresAt;
+        this.log.info('OmniLogic: restored cached session token.');
+      }
+    }
     if (this.token && Date.now() < this.tokenExpiresAt) {
       return;
     }
@@ -137,6 +150,16 @@ export class OmniLogicApi {
       this.firstString(params, 'UserId');
     this.tokenExpiresAt = Date.now() + TOKEN_TTL_MS;
     this.log.info('OmniLogic: authenticated successfully.');
+
+    if (this.tokenStore) {
+      await this.tokenStore.save({
+        v: 1,
+        token: this.token,
+        userId: this.userId,
+        expiresAt: this.tokenExpiresAt,
+        username: this.username,
+      });
+    }
   }
 
   async getSiteList(): Promise<{ mspSystemId: number; backyardName: string }> {
@@ -341,6 +364,10 @@ export class OmniLogicApi {
     if (this.isAuthFailure(xml)) {
       this.log.debug(`OmniLogic: ${name} got auth failure, refreshing token.`);
       this.tokenExpiresAt = 0;
+      this.token = null;
+      if (this.tokenStore) {
+        await this.tokenStore.clear();
+      }
       await this.login();
       xml = await tryOnce();
     }

@@ -63,10 +63,23 @@
         "type": "boolean",
         "default": true
       },
+      "hideEquipmentIds": {
+        "title": "Hide Equipment IDs",
+        "type": "array",
+        "items": { "type": "integer" },
+        "description": "OmniLogic system IDs to suppress from HomeKit. Look at the Homebridge log on startup to see the discovered IDs."
+      },
       "debug": {
         "title": "Debug Logging",
         "type": "boolean",
-        "default": false
+        "default": false,
+        "description": "Logs full SOAP request/response XML. Passwords and tokens are redacted automatically."
+      },
+      "disableLogs": {
+        "title": "Disable All Plugin Logs",
+        "type": "boolean",
+        "default": false,
+        "description": "Suppress every log line emitted by this plugin. Use only if you've already validated the setup."
       }
     }
   }

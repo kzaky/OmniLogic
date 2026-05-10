@@ -1,0 +1,52 @@
+name: Bug report
+description: Something is wrong with the plugin.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please:
+        1. Enable `"debug": true` in the platform config and reload Homebridge.
+        2. Reproduce the issue.
+        3. Copy the relevant log lines below. Passwords and session tokens are
+           redacted automatically — your logs are safe to share.
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: e.g. 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: homebridge-version
+    attributes:
+      label: Homebridge version
+      placeholder: e.g. 1.8.4
+    validations:
+      required: true
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      placeholder: "e.g. 20.11.0"
+    validations:
+      required: true
+  - type: input
+    id: omnilogic-firmware
+    attributes:
+      label: OmniLogic controller firmware (if known)
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Steps to reproduce, expected vs. actual behaviour.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted Homebridge logs
+      description: Paste the relevant section. Use the debug logs if a SET command was rejected or discovery returned no accessories.
+      render: shell
+    validations:
+      required: true

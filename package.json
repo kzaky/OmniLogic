@@ -19,17 +19,23 @@
     "omnilogic",
     "pool",
     "spa",
-    "homekit"
+    "homekit",
+    "category-thermostat",
+    "category-fan",
+    "category-lighting",
+    "category-other"
   ],
   "main": "dist/index.js",
   "engines": {
-    "node": "^18.20.0 || ^20.10.0 || ^22.0.0",
+    "node": "^20.10.0 || ^22 || ^24",
     "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "scripts": {
     "lint": "eslint src/**/*.ts",
     "build": "rimraf ./dist && tsc",
-    "watch": "npm run build && nodemon",
+    "dev": "concurrently -c yellow,blue --kill-others \"npm:dev:build\" \"npm:dev:run\"",
+    "dev:build": "tsc --watch --preserveWatchOutput",
+    "dev:run": "node --watch ./node_modules/.bin/homebridge -I -D",
     "prepublishOnly": "npm run lint && npm run build"
   },
   "dependencies": {
@@ -37,20 +43,18 @@
     "fast-xml-parser": "^4.5.0"
   },
   "devDependencies": {
-    "@types/node": "^20.14.10",
+    "@types/node": "^22.7.4",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
+    "concurrently": "^9.1.0",
     "eslint": "^8.57.0",
     "homebridge": "^1.8.4",
-    "nodemon": "^3.1.4",
     "rimraf": "^5.0.9",
-    "ts-node": "^10.9.2",
     "typescript": "^5.5.3"
   },
   "files": [
     "dist",
     "config.schema.json",
-    "LICENSE",
-    "README.md"
+    "CHANGELOG.md"
   ]
 }

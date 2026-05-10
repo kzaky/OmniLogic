@@ -9,7 +9,9 @@ export interface OmniLogicPlatformConfig extends PlatformConfig {
   exposePumps?: boolean;
   exposeLights?: boolean;
   exposeHeaters?: boolean;
+  hideEquipmentIds?: number[];
   debug?: boolean;
+  disableLogs?: boolean;
 }
 
 export interface AccessoryContext {
