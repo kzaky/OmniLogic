@@ -41,15 +41,19 @@ export class SwitchAccessory extends BaseAccessory {
   private async handleOnSet(value: CharacteristicValue): Promise<void> {
     const on = !!value;
     this.isOn = on;
-    try {
-      await this.platform.api.setEquipmentState(
-        this.ctx.mspSystemId,
-        this.ctx.bowId,
-        this.ctx.equipmentId,
-        on,
-      );
-    } catch (err: any) {
-      this.platform.log.error(`${this.ctx.name} set failed:`, err.message);
-    }
+    await this.runSet(async () => {
+      try {
+        await this.platform.api.setEquipmentState(
+          this.ctx.mspSystemId,
+          this.ctx.bowId,
+          this.ctx.equipmentId,
+          on,
+        );
+        this.requestPostSetRefresh();
+      } catch (err: any) {
+        this.platform.log.error(`${this.ctx.name} set failed:`, err.message);
+        throw err;
+      }
+    });
   }
 }

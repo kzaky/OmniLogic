@@ -22,15 +22,17 @@
       "password": {
         "title": "OmniLogic Password",
         "type": "string",
-        "required": true
+        "format": "password",
+        "required": true,
+        "description": "Stored in plain text in Homebridge config.json. Treat your Homebridge config file accordingly."
       },
       "pollIntervalSeconds": {
         "title": "Telemetry Poll Interval (seconds)",
         "type": "integer",
         "default": 30,
-        "minimum": 10,
+        "minimum": 15,
         "maximum": 600,
-        "description": "How often to poll OmniLogic for live state. Lower values are more responsive but increase load."
+        "description": "How often to poll OmniLogic for live state. Values below 30s may trigger rate limiting from the Hayward cloud."
       },
       "temperatureUnits": {
         "title": "Temperature Units",

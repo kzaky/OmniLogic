@@ -5,6 +5,7 @@ import { TelemetrySnapshot } from '../omnilogic-api';
 
 export abstract class BaseAccessory {
   protected readonly ctx: AccessoryContext;
+  private setQueue: Promise<unknown> = Promise.resolve();
 
   constructor(
     protected readonly platform: OmniLogicPlatform,
@@ -41,18 +42,33 @@ export abstract class BaseAccessory {
     );
   }
 
-  /**
-   * Find this accessory's data within a telemetry snapshot. Hayward returns
-   * a flat list of <BodyOfWater>, <Heater>, <Filter>, etc. nodes each with a
-   * `systemId` attribute. We look up by the equipmentId we recorded at
-   * discovery time.
-   */
   protected telemetryNode(snap: TelemetrySnapshot): any | undefined {
     return snap.byId.get(this.ctx.equipmentId);
   }
 
   protected bowTelemetry(snap: TelemetrySnapshot): any | undefined {
     return snap.byId.get(this.ctx.bowId);
+  }
+
+  /**
+   * Serialize SET operations on this accessory. HomeKit can fire concurrent
+   * SETs for related characteristics (e.g. TargetState + TargetTemperature)
+   * which race over OmniLogic's serial protocol; we queue them per accessory
+   * so each completes before the next begins.
+   */
+  protected runSet<T>(fn: () => Promise<T>): Promise<T> {
+    const next = this.setQueue.then(fn, fn);
+    // Swallow errors from queue chain so a failure doesn't poison later sets.
+    this.setQueue = next.catch(() => undefined);
+    return next;
+  }
+
+  /**
+   * Kick a telemetry refresh shortly after a successful SET so HomeKit
+   * doesn't show stale state for the full poll interval.
+   */
+  protected requestPostSetRefresh(delayMs = 1500): void {
+    this.platform.scheduleTelemetryRefresh(delayMs);
   }
 
   abstract setup(): void;

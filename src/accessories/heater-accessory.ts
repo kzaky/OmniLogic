@@ -18,7 +18,6 @@ export class HeaterAccessory extends BaseAccessory {
       this.ctx.name,
     );
 
-    // Restrict to OFF / HEAT — the OmniLogic only heats.
     this.service
       .getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
       .setProps({
@@ -115,36 +114,44 @@ export class HeaterAccessory extends BaseAccessory {
     const want =
       value === this.platform.Characteristic.TargetHeatingCoolingState.HEAT;
     this.enabled = want;
-    try {
-      await this.platform.api.setHeaterEnable(
-        this.ctx.mspSystemId,
-        this.ctx.bowId,
-        this.ctx.equipmentId,
-        want,
-      );
-    } catch (err: any) {
-      this.platform.log.error('Heater enable failed:', err.message);
-    }
+    await this.runSet(async () => {
+      try {
+        await this.platform.api.setHeaterEnable(
+          this.ctx.mspSystemId,
+          this.ctx.bowId,
+          this.ctx.equipmentId,
+          want,
+        );
+        this.requestPostSetRefresh();
+      } catch (err: any) {
+        this.platform.log.error('Heater enable failed:', err.message);
+        throw err;
+      }
+    });
   }
 
   private async handleTargetTempSet(value: CharacteristicValue): Promise<void> {
     const tempC = Number(value);
     this.targetTempC = tempC;
     const tempF = this.cToF(tempC);
-    try {
-      await this.platform.api.setHeaterSetpoint(
-        this.ctx.mspSystemId,
-        this.ctx.bowId,
-        this.ctx.equipmentId,
-        tempF,
-      );
-    } catch (err: any) {
-      this.platform.log.error('Heater setpoint failed:', err.message);
-    }
+    await this.runSet(async () => {
+      try {
+        await this.platform.api.setHeaterSetpoint(
+          this.ctx.mspSystemId,
+          this.ctx.bowId,
+          this.ctx.equipmentId,
+          tempF,
+        );
+        this.requestPostSetRefresh();
+      } catch (err: any) {
+        this.platform.log.error('Heater setpoint failed:', err.message);
+        throw err;
+      }
+    });
   }
 
   private fToC(f: number): number {
-    return Math.round(((f - 32) * 5) / 9 * 2) / 2;
+    return Math.round((((f - 32) * 5) / 9) * 2) / 2;
   }
 
   private cToF(c: number): number {

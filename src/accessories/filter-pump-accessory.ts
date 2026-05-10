@@ -68,15 +68,19 @@ export class FilterPumpAccessory extends BaseAccessory {
   private async applySpeed(speed: number): Promise<void> {
     this.speed = speed;
     this.isOn = speed > 0;
-    try {
-      await this.platform.api.setFilterSpeed(
-        this.ctx.mspSystemId,
-        this.ctx.bowId,
-        this.ctx.equipmentId,
-        speed,
-      );
-    } catch (err: any) {
-      this.platform.log.error('Filter speed set failed:', err.message);
-    }
+    await this.runSet(async () => {
+      try {
+        await this.platform.api.setFilterSpeed(
+          this.ctx.mspSystemId,
+          this.ctx.bowId,
+          this.ctx.equipmentId,
+          speed,
+        );
+        this.requestPostSetRefresh();
+      } catch (err: any) {
+        this.platform.log.error('Filter speed set failed:', err.message);
+        throw err;
+      }
+    });
   }
 }

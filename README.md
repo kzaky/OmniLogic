@@ -120,6 +120,47 @@ Implemented methods:
 - `SetUIFilterSpeedCmd`
 - `SetStandAloneLightShow`
 
+## Security notes
+
+- Your OmniLogic credentials are stored **in plain text** in Homebridge's
+  `config.json`. Lock down the file permissions on that directory the same
+  way you would for any other Homebridge credentials.
+- Debug logging (`"debug": true`) redacts the `Password` and `Token`
+  fields before logs are emitted, so you can share logs safely when
+  filing an issue. Confirm before sharing if you've enabled custom log
+  destinations.
+- All API traffic uses HTTPS to `haywardomnilogic.com`.
+
+## Troubleshooting
+
+1. Enable `"debug": true` and reload Homebridge.
+2. Look for `OmniLogic Login response` / `OmniLogic GetMspConfigFile response`
+   in the logs. Secrets are redacted automatically.
+3. **`login failed (Status=...)`** — wrong username/password, or the
+   account isn't permitted to access the site.
+4. **No accessories appear** — the MSP config response was probably
+   parsed empty. Open an issue and attach the redacted
+   `GetMspConfigFile` response from your logs.
+5. **Set command rejected** — the plugin logs `Status=<n>` from the
+   controller. Hayward doesn't publish status codes, but non-zero
+   typically means the equipment is busy or unavailable.
+
+## Releasing
+
+This repo ships a publish-on-tag workflow at
+`.github/workflows/publish.yml`. To cut a release:
+
+1. Bump `version` in `package.json`.
+2. Commit and push to `main`.
+3. Create a matching tag: `git tag v0.2.0 && git push origin v0.2.0`.
+4. The workflow runs lint + build, verifies the tag matches the
+   `package.json` version, and publishes to npm with provenance.
+
+The workflow needs a repository secret named `NPM_TOKEN` (a granular
+npm automation token with publish rights to this package) bound to a
+GitHub Environment called `npm-publish`. The Environment gate lets you
+require manual approval on every publish.
+
 ## Disclaimer
 
 This is an **unofficial** plugin. It is not produced, endorsed, or supported

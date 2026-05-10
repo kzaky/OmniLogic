@@ -8,7 +8,11 @@ import {
 } from 'homebridge';
 
 import { PLATFORM_NAME, PLUGIN_NAME, DEFAULT_POLL_SECONDS } from './settings';
-import { OmniLogicApi, TelemetrySnapshot, BackyardTopology } from './omnilogic-api';
+import {
+  OmniLogicApi,
+  TelemetrySnapshot,
+  BackyardTopology,
+} from './omnilogic-api';
 import { AccessoryContext, OmniLogicPlatformConfig } from './types';
 import { HeaterAccessory } from './accessories/heater-accessory';
 import { LightAccessory } from './accessories/light-accessory';
@@ -30,6 +34,9 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
   public topology: BackyardTopology | null = null;
 
   private pollTimer: NodeJS.Timeout | null = null;
+  private refreshTimer: NodeJS.Timeout | null = null;
+  private mspSystemId: number | null = null;
+  private shuttingDown = false;
 
   constructor(
     public readonly log: Logger,
@@ -44,7 +51,6 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
       log.error(
         'OmniLogic: username and password are required in config.json. Plugin disabled.',
       );
-      // Stub out API so accessor calls don't crash; nothing else will run.
       this.api = new OmniLogicApi('', '', log);
       return;
     }
@@ -63,7 +69,9 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
     });
 
     hbApi.on('shutdown', () => {
+      this.shuttingDown = true;
       if (this.pollTimer) clearInterval(this.pollTimer);
+      if (this.refreshTimer) clearTimeout(this.refreshTimer);
     });
   }
 
@@ -71,9 +79,42 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
+  /**
+   * Request an out-of-band telemetry refresh, coalescing multiple SETs into
+   * a single API call. Called by accessory handlers after a successful SET.
+   */
+  scheduleTelemetryRefresh(delayMs = 1500): void {
+    if (this.shuttingDown || this.mspSystemId == null) return;
+    if (this.refreshTimer) return;
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = null;
+      this.refreshTelemetry().catch((err) => {
+        this.log.debug('OmniLogic post-set refresh failed:', err.message);
+      });
+    }, delayMs);
+  }
+
+  private async refreshTelemetry(): Promise<void> {
+    if (this.mspSystemId == null) return;
+    const snap = await this.api.getTelemetry(this.mspSystemId);
+    this.broadcast(snap);
+  }
+
+  private broadcast(snap: TelemetrySnapshot): void {
+    this.latestTelemetry = snap;
+    for (const handler of this.handlers.values()) {
+      try {
+        handler.onTelemetry(snap);
+      } catch (err: any) {
+        this.log.debug('Telemetry handler threw:', err.message);
+      }
+    }
+  }
+
   private async discover(): Promise<void> {
     await this.api.login();
     const site = await this.api.getSiteList();
+    this.mspSystemId = site.mspSystemId;
     this.log.info(
       `OmniLogic: found site "${site.backyardName}" (MspSystemID=${site.mspSystemId}).`,
     );
@@ -83,7 +124,6 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
       `OmniLogic: discovered ${topology.bows.length} body(s) of water.`,
     );
 
-    // Prime telemetry before binding accessories so initial state is correct.
     try {
       this.latestTelemetry = await this.api.getTelemetry(site.mspSystemId);
     } catch (err: any) {
@@ -92,7 +132,7 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
 
     const desired = this.buildDesiredAccessories(topology);
     this.syncAccessories(desired);
-    this.startPolling(site.mspSystemId);
+    this.startPolling();
   }
 
   private buildDesiredAccessories(
@@ -160,7 +200,6 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
           });
         }
       }
-      // Water temperature sensor uses BoW systemId itself.
       result.push({
         kind: 'temperature',
         mspSystemId: topology.mspSystemId,
@@ -176,15 +215,14 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
   private syncAccessories(desired: AccessoryContext[]): void {
     const desiredByUuid = new Map<string, AccessoryContext>();
     for (const ctx of desired) {
-      const uuid = this.uuidFor(ctx);
-      desiredByUuid.set(uuid, ctx);
+      desiredByUuid.set(this.uuidFor(ctx), ctx);
     }
 
-    // Register / refresh
     for (const [uuid, ctx] of desiredByUuid) {
       const existing = this.accessories.find((a) => a.UUID === uuid);
       if (existing) {
         existing.context = ctx;
+        existing.displayName = ctx.name;
         this.bindHandler(existing);
         this.hbApi.updatePlatformAccessories([existing]);
       } else {
@@ -201,7 +239,6 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
       }
     }
 
-    // Remove stale
     const stale = this.accessories.filter((a) => !desiredByUuid.has(a.UUID));
     if (stale.length) {
       this.hbApi.unregisterPlatformAccessories(
@@ -212,6 +249,7 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
       for (const s of stale) {
         const idx = this.accessories.indexOf(s);
         if (idx >= 0) this.accessories.splice(idx, 1);
+        this.handlers.delete(s.UUID);
       }
     }
   }
@@ -219,8 +257,9 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
   private bindHandler(
     accessory: PlatformAccessory<AccessoryContext>,
   ): void {
+    if (this.handlers.has(accessory.UUID)) return;
     const ctx = accessory.context;
-    let handler: BaseAccessory;
+    let handler: BaseAccessory | undefined;
     switch (ctx.kind) {
       case 'heater':
         handler = new HeaterAccessory(this, accessory);
@@ -238,24 +277,18 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
       case 'temperature':
         handler = new TemperatureSensorAccessory(this, accessory);
         break;
-      default:
-        return;
     }
-    this.handlers.set(accessory.UUID, handler);
+    if (handler) this.handlers.set(accessory.UUID, handler);
   }
 
-  private startPolling(mspSystemId: number): void {
+  private startPolling(): void {
     const seconds = Math.max(
       10,
       this.config.pollIntervalSeconds ?? DEFAULT_POLL_SECONDS,
     );
     this.pollTimer = setInterval(async () => {
       try {
-        const snap = await this.api.getTelemetry(mspSystemId);
-        this.latestTelemetry = snap;
-        for (const handler of this.handlers.values()) {
-          handler.onTelemetry(snap);
-        }
+        await this.refreshTelemetry();
       } catch (err: any) {
         this.log.debug('OmniLogic telemetry poll failed:', err.message);
       }
