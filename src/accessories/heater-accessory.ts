@@ -114,40 +114,28 @@ export class HeaterAccessory extends BaseAccessory {
     const want =
       value === this.platform.Characteristic.TargetHeatingCoolingState.HEAT;
     this.enabled = want;
-    await this.runSet(async () => {
-      try {
-        await this.platform.api.setHeaterEnable(
-          this.ctx.mspSystemId,
-          this.ctx.bowId,
-          this.ctx.equipmentId,
-          want,
-        );
-        this.requestPostSetRefresh();
-      } catch (err: any) {
-        this.platform.log.error('Heater enable failed:', err.message);
-        throw err;
-      }
-    });
+    await this.runApiSet('Heater enable', () =>
+      this.platform.api.setHeaterEnable(
+        this.ctx.mspSystemId,
+        this.ctx.bowId,
+        this.ctx.equipmentId,
+        want,
+      ),
+    );
   }
 
   private async handleTargetTempSet(value: CharacteristicValue): Promise<void> {
     const tempC = Number(value);
     this.targetTempC = tempC;
     const tempF = this.cToF(tempC);
-    await this.runSet(async () => {
-      try {
-        await this.platform.api.setHeaterSetpoint(
-          this.ctx.mspSystemId,
-          this.ctx.bowId,
-          this.ctx.equipmentId,
-          tempF,
-        );
-        this.requestPostSetRefresh();
-      } catch (err: any) {
-        this.platform.log.error('Heater setpoint failed:', err.message);
-        throw err;
-      }
-    });
+    await this.runApiSet('Heater setpoint', () =>
+      this.platform.api.setHeaterSetpoint(
+        this.ctx.mspSystemId,
+        this.ctx.bowId,
+        this.ctx.equipmentId,
+        tempF,
+      ),
+    );
   }
 
   private fToC(f: number): number {

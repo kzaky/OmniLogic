@@ -22,8 +22,6 @@ import { FilterPumpAccessory } from './accessories/filter-pump-accessory';
 import { TemperatureSensorAccessory } from './accessories/temperature-sensor-accessory';
 import { BaseAccessory } from './accessories/base-accessory';
 
-const DISCOVERY_BACKOFF_MS = [5_000, 15_000, 30_000, 60_000, 120_000, 300_000];
-
 export class OmniLogicPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
@@ -86,7 +84,7 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  scheduleTelemetryRefresh(delayMs = 1500): void {
+  scheduleTelemetryRefresh(): void {
     if (this.shuttingDown || this.mspSystemId == null) return;
     if (this.refreshTimer) return;
     this.refreshTimer = setTimeout(() => {
@@ -94,7 +92,7 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
       this.refreshTelemetry().catch((err) => {
         this.log.debug('OmniLogic post-set refresh failed:', err.message);
       });
-    }, delayMs);
+    }, 1500);
   }
 
   private async refreshTelemetry(): Promise<void> {
@@ -128,8 +126,7 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
         await this.discover();
       } catch (err: any) {
         if (this.shuttingDown) return;
-        const delay =
-          DISCOVERY_BACKOFF_MS[Math.min(attempt, DISCOVERY_BACKOFF_MS.length - 1)];
+        const delay = Math.min(5_000 * 2 ** attempt, 300_000);
         attempt += 1;
         this.log.error(
           `OmniLogic discovery failed (${err.message}). Retrying in ${Math.round(
@@ -174,17 +171,18 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
     );
     for (const bow of topology.bows) {
       this.log.info(`  ${bow.name} (BoW id=${bow.systemId}):`);
-      const tagged = (kind: string, list: { systemId: number; name: string }[]) => {
+      for (const [kind, list] of [
+        ['Heater', bow.heaters],
+        ['Filter', bow.filters],
+        ['Pump', bow.pumps],
+        ['Light', bow.lights],
+        ['Chlorinator', bow.chlorinators],
+        ['Relay', bow.relays],
+      ] as const) {
         for (const e of list) {
           this.log.info(`    ${kind} "${e.name}" id=${e.systemId}`);
         }
-      };
-      tagged('Heater', bow.heaters);
-      tagged('Filter', bow.filters);
-      tagged('Pump', bow.pumps);
-      tagged('Light', bow.lights);
-      tagged('Chlorinator', bow.chlorinators);
-      tagged('Relay', bow.relays);
+      }
     }
   }
 
@@ -339,10 +337,7 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
   }
 
   private startPolling(): void {
-    const seconds = Math.max(
-      15,
-      this.config.pollIntervalSeconds ?? DEFAULT_POLL_SECONDS,
-    );
+    const seconds = this.config.pollIntervalSeconds ?? DEFAULT_POLL_SECONDS;
     this.pollTimer = setInterval(async () => {
       try {
         await this.refreshTelemetry();
@@ -359,19 +354,14 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
   }
 }
 
-/**
- * Returns the real Homebridge logger, or a no-op proxy if the user has
- * opted into `disableLogs`. We use a Proxy so any future Logger method
- * additions remain harmless.
- */
 function makeLogger(realLog: Logger, disable: boolean): Logger {
   if (!disable) return realLog;
   const noop = () => undefined;
-  return new Proxy(realLog, {
-    get(target, prop, receiver) {
-      const original = Reflect.get(target, prop, receiver);
-      if (typeof original === 'function') return noop;
-      return original;
-    },
-  });
+  return {
+    info: noop,
+    warn: noop,
+    error: noop,
+    debug: noop,
+    log: noop,
+  } as unknown as Logger;
 }
