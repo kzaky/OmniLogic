@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.1] - 2026-05-11
+
+First public beta. Published under the `beta` dist-tag while real-world
+firmware coverage is gathered; install with
+`npm install homebridge-omnilogic-pool@beta`.
+
 ### Added
 
 - Test suite (`node:test` via `tsx`) covering the XML/SOAP helpers
