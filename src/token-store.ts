@@ -9,8 +9,8 @@ export interface CachedToken {
   expiresAt: number;
   /** Username the token was issued to; cache is invalidated if this changes. */
   username: string;
-  /** Schema version. v=2 added refreshToken for the post-2025 auth flow. */
-  v: 2;
+  /** Schema version. v=3 invalidates v=2 caches that stored null userId. */
+  v: 3;
 }
 
 const SKEW_MS = 5 * 60 * 1000;
@@ -57,7 +57,7 @@ export class TokenStore {
 
     if (
       !parsed ||
-      parsed.v !== 2 ||
+      parsed.v !== 3 ||
       typeof parsed.token !== 'string' ||
       typeof parsed.expiresAt !== 'number' ||
       typeof parsed.username !== 'string'

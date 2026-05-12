@@ -27,7 +27,7 @@ afterEach(async () => {
 
 function makeToken(overrides: Partial<CachedToken> = {}): CachedToken {
   return {
-    v: 2,
+    v: 3,
     token: 'tok-abc',
     refreshToken: 'rtok-xyz',
     userId: 'user-1',

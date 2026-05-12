@@ -92,6 +92,7 @@ export class OmniLogicApi {
   }
 
   async ensureLogin(): Promise<void> {
+    if (this.token && Date.now() < this.tokenExpiresAt) return;
     if (!this.cacheLoaded && this.tokenStore) {
       this.cacheLoaded = true;
       const cached = await this.tokenStore.load(this.username);
@@ -101,10 +102,8 @@ export class OmniLogicApi {
         this.userId = cached.userId;
         this.tokenExpiresAt = cached.expiresAt;
         this.log.info('OmniLogic: restored cached session token.');
+        if (Date.now() < this.tokenExpiresAt) return;
       }
-    }
-    if (this.token && Date.now() < this.tokenExpiresAt) {
-      return;
     }
     if (this.refreshTokenValue) {
       try {
@@ -143,15 +142,13 @@ export class OmniLogicApi {
   }
 
   private applyAuthResponse(data: any, source: 'login' | 'refresh'): void {
-    const token = typeof data?.token === 'string' ? data.token : null;
-    const refreshToken =
-      typeof data?.refreshToken === 'string' ? data.refreshToken : null;
-    const userId =
-      typeof data?.userID === 'string'
-        ? data.userID
-        : typeof data?.userId === 'string'
-          ? data.userId
-          : null;
+    if (this.debug) {
+      const keys = data && typeof data === 'object' ? Object.keys(data) : [];
+      this.log.info(`OmniLogic ${source} response keys: ${keys.join(', ')}`);
+    }
+    const token = coerceString(data?.token);
+    const refreshToken = coerceString(data?.refreshToken);
+    const userId = coerceString(data?.userID ?? data?.userId);
     if (!token) {
       throw new Error(`OmniLogic auth (${source}) returned no token.`);
     }
@@ -159,11 +156,13 @@ export class OmniLogicApi {
     this.refreshTokenValue = refreshToken ?? this.refreshTokenValue;
     this.userId = userId ?? this.userId;
     this.tokenExpiresAt = Date.now() + TOKEN_TTL_MS;
-    this.log.info(`OmniLogic: ${source} succeeded.`);
+    this.log.info(
+      `OmniLogic: ${source} succeeded (userId=${this.userId ?? '<missing>'}).`,
+    );
 
     if (this.tokenStore) {
       void this.tokenStore.save({
-        v: 2,
+        v: 3,
         token,
         refreshToken: this.refreshTokenValue,
         userId: this.userId,
@@ -387,4 +386,11 @@ export class OmniLogicApi {
       throw new Error(`OmniLogic ${name} transport error: ${detail}`);
     }
   }
+}
+
+function coerceString(v: unknown): string | null {
+  if (v == null) return null;
+  if (typeof v === 'string') return v === '' ? null : v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  return null;
 }
