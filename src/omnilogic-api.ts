@@ -237,7 +237,7 @@ export class OmniLogicApi {
       { name: 'PoolID', dataType: 'int', value: bowId },
       { name: 'HeaterID', dataType: 'int', value: heaterId },
       { name: 'Version', dataType: 'String', value: '0' },
-      { name: 'HeaterEnable', dataType: 'bool', value: enabled },
+      { name: 'Enabled', dataType: 'bool', value: enabled },
     ]);
   }
 

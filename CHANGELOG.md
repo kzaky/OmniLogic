@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.7] - 2026-05-12
+
+### Fixed
+
+- `SetHeaterEnable` was sending the boolean as a parameter named
+  `HeaterEnable`, which the API rejects with `Status=3`. djtimca's
+  Python client uses the name `Enabled`. Switched to match.
+
 ## [0.1.0-beta.6] - 2026-05-12
 
 ### Fixed
