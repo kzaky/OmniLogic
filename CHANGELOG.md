@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.4] - 2026-05-12
+
+### Changed
+
+- Diagnostic: when `getSiteList` parsing fails (no `<Item>` element, or
+  the item is missing `MspSystemID`), the first 1000 chars of the raw
+  response are logged at `warn` level. Beta-3 didn't yield enough
+  signal to fix the parser; this gets the response shape into normal
+  logs without relying on `debug: true` opt-in.
+
 ## [0.1.0-beta.3] - 2026-05-12
 
 ### Fixed
