@@ -6,6 +6,7 @@ export interface OmniLogicPlatformConfig extends PlatformConfig {
   pollIntervalSeconds?: number;
   temperatureUnits?: 'F' | 'C';
   exposeChlorinator?: boolean;
+  exposeRelays?: boolean;
   exposePumps?: boolean;
   exposeLights?: boolean;
   exposeHeaters?: boolean;
@@ -15,7 +16,7 @@ export interface OmniLogicPlatformConfig extends PlatformConfig {
 }
 
 export interface AccessoryContext {
-  kind: 'heater' | 'light' | 'pump' | 'filter' | 'chlorinator' | 'temperature';
+  kind: 'heater' | 'light' | 'pump' | 'filter' | 'chlorinator' | 'relay' | 'temperature';
   mspSystemId: number;
   bowId: number;
   equipmentId: number;

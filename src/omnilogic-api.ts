@@ -118,7 +118,7 @@ export class OmniLogicApi {
     await this.login();
   }
 
-  async login(): Promise<void> {
+  private async login(): Promise<void> {
     if (this.loginInFlight) return this.loginInFlight;
     this.loginInFlight = this.doLogin().finally(() => {
       this.loginInFlight = null;
@@ -322,7 +322,6 @@ export class OmniLogicApi {
     name: string,
     params: RequestParameter[],
   ): Promise<string> {
-    await this.ensureLogin();
     const tryOnce = () => this.post(name, params);
 
     let { status, body } = await tryOnce();

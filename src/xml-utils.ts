@@ -103,7 +103,6 @@ export function extractParameters(xml: string): any[] {
 export function firstString(params: any[], name: string): string | null {
   const p = params.find((x) => x?.['@_name'] === name);
   if (p == null) return null;
-  if (typeof p !== 'object') return String(p);
   const raw = '#text' in p ? p['#text'] : undefined;
   return raw == null ? null : String(raw);
 }
@@ -187,14 +186,12 @@ export interface BodyOfWater {
 export interface EquipmentRef {
   systemId: number;
   name: string;
-  raw: any;
 }
 
 export interface BackyardTopology {
   mspSystemId: number;
   backyardName: string;
   bows: BodyOfWater[];
-  rawMsp: any;
 }
 
 export function buildTopology(
@@ -221,7 +218,7 @@ export function buildTopology(
     relays: collectEquipment(bow, ['Relay']),
   }));
 
-  return { mspSystemId, backyardName, bows, rawMsp: mspNode };
+  return { mspSystemId, backyardName, bows };
 }
 
 function collectEquipment(parent: any, tags: string[]): EquipmentRef[] {
@@ -233,7 +230,6 @@ function collectEquipment(parent: any, tags: string[]): EquipmentRef[] {
       out.push({
         systemId,
         name: String(deepFind(n, 'Name') ?? tag),
-        raw: n,
       });
     }
   }

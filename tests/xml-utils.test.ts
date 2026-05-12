@@ -11,6 +11,7 @@ import {
   extractParameters,
   firstNumber,
   firstString,
+  namedChildren,
   readSystemId,
   redactXml,
 } from '../src/xml-utils';
@@ -269,6 +270,58 @@ describe('collectTelemetryNodes', () => {
     const merged = map.get(1);
     assert.equal(merged['@_a'], 1);
     assert.equal(merged['@_b'], 2);
+  });
+});
+
+describe('namedChildren', () => {
+  it('returns children that carry a @_name attribute', () => {
+    const item = {
+      MspSystemID: { '@_name': 'MspSystemID', '@_dataType': 'int', '#text': 12345 },
+      BackyardName: { '@_name': 'BackyardName', '@_dataType': 'String', '#text': 'My Pool' },
+    };
+    const children = namedChildren(item);
+    assert.equal(children.length, 2);
+    assert.equal(firstString(children, 'BackyardName'), 'My Pool');
+    assert.equal(firstNumber(children, 'MspSystemID'), 12345);
+  });
+
+  it('skips @_ attributes and #text keys', () => {
+    const item = {
+      '@_systemId': 99,
+      '#text': 'ignored',
+      Foo: { '@_name': 'Foo', '#text': 'bar' },
+    };
+    const children = namedChildren(item);
+    assert.equal(children.length, 1);
+    assert.equal(firstString(children, 'Foo'), 'bar');
+  });
+
+  it('flattens array-valued children', () => {
+    const item = {
+      X: [
+        { '@_name': 'A', '#text': '1' },
+        { '@_name': 'B', '#text': '2' },
+      ],
+    };
+    const children = namedChildren(item);
+    assert.equal(children.length, 2);
+    assert.equal(firstString(children, 'A'), '1');
+    assert.equal(firstString(children, 'B'), '2');
+  });
+
+  it('ignores children without a @_name attribute', () => {
+    const item = {
+      NoName: { value: 42 },
+      Named: { '@_name': 'Named', '#text': 'yes' },
+    };
+    const children = namedChildren(item);
+    assert.equal(children.length, 1);
+  });
+
+  it('returns empty array for null/primitive input', () => {
+    assert.deepEqual(namedChildren(null), []);
+    assert.deepEqual(namedChildren('string'), []);
+    assert.deepEqual(namedChildren(undefined), []);
   });
 });
 

@@ -251,6 +251,18 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
           });
         }
       }
+      if (cfg.exposeRelays !== false) {
+        for (const r of bow.relays.filter((e) => keep(e.systemId))) {
+          result.push({
+            kind: 'relay',
+            mspSystemId: topology.mspSystemId,
+            bowId: bow.systemId,
+            equipmentId: r.systemId,
+            bowName: bow.name,
+            name: r.name || `${bow.name} Relay`,
+          });
+        }
+      }
       if (keep(bow.systemId)) {
         result.push({
           kind: 'temperature',
@@ -323,6 +335,7 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
       case 'filter':
       case 'pump':
       case 'chlorinator':
+      case 'relay':
         handler = new SwitchAccessory(this, accessory);
         break;
       case 'temperature':
