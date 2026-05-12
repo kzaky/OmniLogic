@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.6] - 2026-05-12
+
+### Fixed
+
+- **Filter pump now exposed as a Switch, not a Fan.** Hardware test
+  showed `SetUIFilterSpeedCmd` returns `Status=5 "This operation is
+  not supported"` against single-speed pumps (the common case). All
+  filter pumps now use `SetUIEquipmentCmd` for on/off. Old Fan service
+  on existing accessories is automatically removed on first start so
+  HomeKit shows just the Switch.
+- **Chlorinator no longer reports "always on".** Switch telemetry was
+  using `operatingMode > 0` to derive HomeKit on/off state, but
+  `operatingMode` is the chlorination *mode* (1 = Timed, 2 = %-output,
+  etc.) — always non-zero on a configured chlorinator. Now uses
+  `enable` attribute (1/0 or "yes"/"no") instead. Fixes the "switch
+  keeps turning back on" symptom.
+- **Heater enable parses `"yes"`/`"no"` string values.** Real
+  telemetry uses `<VirtualHeater enable="no"/>`; previously only
+  numeric or `"true"`/`"false"` were recognised, so a `"yes"`-state
+  heater would always read as off in HomeKit.
+
+### Removed
+
+- `FilterPumpAccessory` (Fan-with-speed model). If variable-speed
+  support comes back, it will be driven by MSP-config-based detection
+  rather than assumed.
+
 ## [0.1.0-beta.5] - 2026-05-12
 
 ### Fixed

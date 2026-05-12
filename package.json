@@ -1,7 +1,7 @@
 {
   "name": "homebridge-omnilogic-pool",
   "displayName": "Hayward OmniLogic Pool",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.6",
   "description": "Homebridge plugin for the Hayward OmniLogic pool/spa controller.",
   "license": "Apache-2.0",
   "author": "kzaky",

@@ -18,7 +18,6 @@ import { TokenStore } from './token-store';
 import { HeaterAccessory } from './accessories/heater-accessory';
 import { LightAccessory } from './accessories/light-accessory';
 import { SwitchAccessory } from './accessories/switch-accessory';
-import { FilterPumpAccessory } from './accessories/filter-pump-accessory';
 import { TemperatureSensorAccessory } from './accessories/temperature-sensor-accessory';
 import { BaseAccessory } from './accessories/base-accessory';
 
@@ -322,8 +321,6 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
         handler = new LightAccessory(this, accessory);
         break;
       case 'filter':
-        handler = new FilterPumpAccessory(this, accessory);
-        break;
       case 'pump':
       case 'chlorinator':
         handler = new SwitchAccessory(this, accessory);

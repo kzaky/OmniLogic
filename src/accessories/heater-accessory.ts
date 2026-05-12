@@ -76,9 +76,12 @@ export class HeaterAccessory extends BaseAccessory {
       Number(node?.['@_Current-Set-Point']) ||
       Number(node?.['@_currentSetPoint']) ||
       Number(node?.['@_settingsTemp']);
+    const enableStr = String(node?.['@_enable'] ?? '').toLowerCase();
     const enabled =
       Number(node?.['@_enable']) === 1 ||
-      String(node?.['@_enable']).toLowerCase() === 'true' ||
+      enableStr === 'true' ||
+      enableStr === 'yes' ||
+      enableStr === 'on' ||
       Number(node?.['@_heaterState']) === 1;
 
     if (Number.isFinite(reportedF) && reportedF > 0) {
