@@ -49,7 +49,7 @@ export function encodeValue(
   return escapeXml(String(value));
 }
 
-export function buildSoapRequest(
+export function buildRequestXml(
   name: string,
   params: RequestParameter[],
 ): string {
@@ -60,17 +60,10 @@ export function buildSoapRequest(
     })
     .join('');
   return (
-    '<?xml version="1.0" encoding="utf-8"?>' +
-    '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' +
-    ' xmlns:xsd="http://www.w3.org/2001/XMLSchema"' +
-    ' xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">' +
-    '<soap:Body>' +
     '<Request>' +
     `<Name>${name}</Name>` +
     `<Parameters>${paramXml}</Parameters>` +
-    '</Request>' +
-    '</soap:Body>' +
-    '</soap:Envelope>'
+    '</Request>'
   );
 }
 
@@ -258,13 +251,6 @@ export function collectTelemetryNodes(
     if (v && typeof v === 'object') collectTelemetryNodes(v, byId);
   }
   return byId;
-}
-
-export function isAuthFailureXml(xml: string): boolean {
-  if (!/<(Status|StatusCode)>\s*[1-9]/i.test(xml)) {
-    return false;
-  }
-  return /Token|Login|Unauthorized|Authentication/i.test(xml);
 }
 
 function collectArray(node: any, key: string): any[] {
