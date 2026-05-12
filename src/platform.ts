@@ -140,7 +140,6 @@ export class OmniLogicPlatform implements DynamicPlatformPlugin {
   }
 
   private async discover(): Promise<void> {
-    await this.api.login();
     const site = await this.api.getSiteList();
     this.mspSystemId = site.mspSystemId;
     this.log.info(

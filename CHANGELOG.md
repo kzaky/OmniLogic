@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.5] - 2026-05-12
+
+### Fixed
+
+- `UserID` was being sent as an empty string in `GetSiteList`, causing
+  the API to respond `Status=6 / "Input string was not in a correct
+  format"`. Root cause was two compounding bugs:
+  1. `applyAuthResponse` rejected `userID` unless it was a string. If
+     the auth API returns it as a number (likely), we dropped it.
+     Now coerced via a `coerceString` helper that accepts string,
+     number, or boolean.
+  2. `ensureLogin` always restored from cache, overwriting the
+     in-memory userId set by a fresh login. Reordered so cache is
+     only consulted when the in-memory token is expired or absent.
+- Removed redundant `api.login()` call in `discover()`. `getSiteList`'s
+  `ensureLogin` now handles auth path selection (fresh-token / cache /
+  refresh / login) without the platform pre-empting it.
+
+### Changed
+
+- Token cache schema bumped to `v: 3` to invalidate `v: 2` caches that
+  may have stored `userId: null` from beta-2/3/4 runs. One re-login
+  needed on upgrade.
+- `applyAuthResponse` logs the response keys when `debug: true`, and
+  always includes `userId=...` in the success line. Quick way to see
+  whether we extracted it correctly without enabling the full XML
+  trace.
+
 ## [0.1.0-beta.4] - 2026-05-12
 
 ### Changed
