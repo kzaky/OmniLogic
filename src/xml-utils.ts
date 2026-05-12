@@ -116,6 +116,29 @@ export function firstNumber(params: any[], name: string): number | null {
 }
 
 /**
+ * Walk an `<Item>`-style container and return every direct child object
+ * that carries a `name` attribute, regardless of the child element's tag.
+ * The new (post-2025) Hayward API returns lists as
+ * `<Parameters><Parameter><Item><X name="Foo" dataType="...">v</X>...</Item>`
+ * where X varies. This flattener lets `firstString`/`firstNumber` work
+ * against the resulting array.
+ */
+export function namedChildren(node: any): any[] {
+  if (!node || typeof node !== 'object') return [];
+  const out: any[] = [];
+  for (const [key, value] of Object.entries(node)) {
+    if (key.startsWith('@_') || key === '#text') continue;
+    const arr = Array.isArray(value) ? value : [value];
+    for (const v of arr) {
+      if (v && typeof v === 'object' && '@_name' in v) {
+        out.push(v);
+      }
+    }
+  }
+  return out;
+}
+
+/**
  * MSP config and telemetry responses both wrap the meaningful payload
  * as a string-encoded XML fragment inside a `<Parameter dataType="XML">`
  * child. Try element-walking first, then fall back to re-parsing
