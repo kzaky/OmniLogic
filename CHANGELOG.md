@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-12
+
+First stable release. All features validated against real hardware.
+
+### Added
+
+- Relay accessories exposed as Switches (new `exposeRelays` config option, default `true`).
+
+### Changed
+
+- Promoted from beta to stable. Install with `npm install homebridge-omnilogic-pool`.
+
+### Fixed
+
+- Removed dead `EquipmentRef.raw` and `BackyardTopology.rawMsp` fields.
+- `OmniLogicApi.login()` made private; redundant `ensureLogin()` call removed from request path.
+- Dead branch in `firstString` removed.
+- `namedChildren` helper now has full unit test coverage.
+
 ## [0.1.0-beta.7] - 2026-05-12
 
 ### Fixed
