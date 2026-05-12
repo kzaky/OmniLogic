@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  buildSoapRequest,
+  buildRequestXml,
   buildTopology,
   collectTelemetryNodes,
   encodeValue,
@@ -11,7 +11,6 @@ import {
   extractParameters,
   firstNumber,
   firstString,
-  isAuthFailureXml,
   readSystemId,
   redactXml,
 } from '../src/xml-utils';
@@ -44,24 +43,32 @@ describe('encodeValue', () => {
   });
 });
 
-describe('buildSoapRequest', () => {
-  it('produces the expected envelope shape', () => {
-    const body = buildSoapRequest('Login', [
-      { name: 'UserName', dataType: 'String', value: 'me@example.com' },
-      { name: 'Password', dataType: 'String', value: 's3cret' },
+describe('buildRequestXml', () => {
+  it('produces a bare <Request> element with parameters, no SOAP envelope', () => {
+    const body = buildRequestXml('GetSiteList', [
+      { name: 'UserID', dataType: 'String', value: 'u-42' },
     ]);
 
-    assert.match(body, /^<\?xml version="1\.0" encoding="utf-8"\?>/);
-    assert.match(body, /<soap:Envelope[^>]*>/);
-    assert.match(body, /<Request><Name>Login<\/Name>/);
-    assert.match(
+    assert.equal(
       body,
-      /<Parameter name="UserName" dataType="String">me@example\.com<\/Parameter>/,
+      '<Request><Name>GetSiteList</Name><Parameters>' +
+        '<Parameter name="UserID" dataType="String">u-42</Parameter>' +
+        '</Parameters></Request>',
     );
-    assert.match(
-      body,
-      /<Parameter name="Password" dataType="String">s3cret<\/Parameter>/,
-    );
+  });
+
+  it('escapes special chars in string values', () => {
+    const body = buildRequestXml('X', [
+      { name: 'Q', dataType: 'String', value: 'a&b<c' },
+    ]);
+    assert.match(body, /a&amp;b&lt;c/);
+  });
+
+  it('renders booleans as Hayward-style True/False', () => {
+    const body = buildRequestXml('X', [
+      { name: 'On', dataType: 'bool', value: true },
+    ]);
+    assert.match(body, /<Parameter name="On" dataType="bool">True<\/Parameter>/);
   });
 });
 
@@ -265,25 +272,3 @@ describe('collectTelemetryNodes', () => {
   });
 });
 
-describe('isAuthFailureXml', () => {
-  it('flags Status>0 mentioning Token', () => {
-    assert.equal(
-      isAuthFailureXml('<Status>4</Status><Message>Invalid Token</Message>'),
-      true,
-    );
-  });
-
-  it('ignores Status=0 even with token in message', () => {
-    assert.equal(
-      isAuthFailureXml('<Status>0</Status><Token>x</Token>'),
-      false,
-    );
-  });
-
-  it('ignores Status>0 without auth keywords (likely an equipment error)', () => {
-    assert.equal(
-      isAuthFailureXml('<Status>9</Status><Message>Equipment busy</Message>'),
-      false,
-    );
-  });
-});

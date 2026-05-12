@@ -4,12 +4,13 @@ import { Logger } from 'homebridge';
 
 export interface CachedToken {
   token: string;
+  refreshToken: string | null;
   userId: string | null;
   expiresAt: number;
   /** Username the token was issued to; cache is invalidated if this changes. */
   username: string;
-  /** Schema version so we can evolve the file safely. */
-  v: 1;
+  /** Schema version. v=2 added refreshToken for the post-2025 auth flow. */
+  v: 2;
 }
 
 const SKEW_MS = 5 * 60 * 1000;
@@ -56,7 +57,7 @@ export class TokenStore {
 
     if (
       !parsed ||
-      parsed.v !== 1 ||
+      parsed.v !== 2 ||
       typeof parsed.token !== 'string' ||
       typeof parsed.expiresAt !== 'number' ||
       typeof parsed.username !== 'string'

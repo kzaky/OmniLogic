@@ -1,19 +1,23 @@
 import axios, { AxiosInstance } from 'axios';
 import { Logger } from 'homebridge';
-import { OMNILOGIC_ENDPOINT, REQUEST_TIMEOUT_MS } from './settings';
+import {
+  OMNILOGIC_APP_ID,
+  OMNILOGIC_AUTH_URL,
+  OMNILOGIC_DATA_URL,
+  OMNILOGIC_REFRESH_URL,
+  REQUEST_TIMEOUT_MS,
+} from './settings';
 import { TokenStore } from './token-store';
 import {
   BackyardTopology,
   RequestParameter,
-  buildSoapRequest,
+  buildRequestXml,
   buildTopology,
   collectTelemetryNodes,
   deepFind,
   extractEmbeddedPayload,
   extractParameters,
   firstNumber,
-  firstString,
-  isAuthFailureXml,
   parseXml,
   redactXml,
 } from './xml-utils';
@@ -30,9 +34,8 @@ export interface TelemetrySnapshot {
   raw: any;
 }
 
-const TOKEN_TTL_MS = 6 * 60 * 60 * 1000;
+const TOKEN_TTL_MS = 23 * 60 * 60 * 1000;
 
-/** Default "no schedule" trailing parameters shared by SetUI*Cmd calls. */
 const NO_SCHEDULE: RequestParameter[] = [
   { name: 'IsCountDownTimer', dataType: 'bool', value: false },
   { name: 'StartTimeHours', dataType: 'int', value: 0 },
@@ -44,14 +47,20 @@ const NO_SCHEDULE: RequestParameter[] = [
 ];
 
 /**
- * SOAP client for the Hayward OmniLogic Home Automation Service.
- * Owns the HTTP transport, login state, and token cache. All pure
- * XML / SOAP work lives in xml-utils.
+ * Client for the Hayward OmniLogic Home Automation Service.
+ *
+ * Auth lives at services-gamma.haywardcloud.net (REST/JSON), data lives at
+ * www.haywardomnilogic.com/HAAPI/.../API.ashx (XML POST). The `Token` and
+ * `SiteID` are sent as HTTP headers; the request body is a plain
+ * `<Request>...</Request>` XML doc with no SOAP envelope. See
+ * djtimca/omnilogic-api for the reference implementation.
  */
 export class OmniLogicApi {
-  private readonly http: AxiosInstance;
+  private readonly data: AxiosInstance;
+  private readonly auth: AxiosInstance;
 
   private token: string | null = null;
+  private refreshTokenValue: string | null = null;
   private userId: string | null = null;
   private tokenExpiresAt = 0;
   private loginInFlight: Promise<void> | null = null;
@@ -64,15 +73,19 @@ export class OmniLogicApi {
     private readonly debug = false,
     private readonly tokenStore: TokenStore | null = null,
   ) {
-    this.http = axios.create({
-      baseURL: OMNILOGIC_ENDPOINT,
+    this.data = axios.create({
+      baseURL: OMNILOGIC_DATA_URL,
       timeout: REQUEST_TIMEOUT_MS,
-      headers: {
-        'Content-Type': 'text/xml; charset=utf-8',
-        SOAPAction: '',
-      },
       responseType: 'text',
       transformResponse: [(d) => d],
+      validateStatus: () => true,
+    });
+    this.auth = axios.create({
+      timeout: REQUEST_TIMEOUT_MS,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-HAYWARD-APP-ID': OMNILOGIC_APP_ID,
+      },
     });
   }
 
@@ -82,6 +95,7 @@ export class OmniLogicApi {
       const cached = await this.tokenStore.load(this.username);
       if (cached) {
         this.token = cached.token;
+        this.refreshTokenValue = cached.refreshToken;
         this.userId = cached.userId;
         this.tokenExpiresAt = cached.expiresAt;
         this.log.info('OmniLogic: restored cached session token.');
@@ -90,13 +104,21 @@ export class OmniLogicApi {
     if (this.token && Date.now() < this.tokenExpiresAt) {
       return;
     }
+    if (this.refreshTokenValue) {
+      try {
+        await this.doRefresh();
+        return;
+      } catch (err: any) {
+        this.log.debug(
+          `OmniLogic: token refresh failed (${err.message}); falling back to full login.`,
+        );
+      }
+    }
     await this.login();
   }
 
   async login(): Promise<void> {
-    if (this.loginInFlight) {
-      return this.loginInFlight;
-    }
+    if (this.loginInFlight) return this.loginInFlight;
     this.loginInFlight = this.doLogin().finally(() => {
       this.loginInFlight = null;
     });
@@ -104,32 +126,44 @@ export class OmniLogicApi {
   }
 
   private async doLogin(): Promise<void> {
-    const body = buildSoapRequest('Login', [
-      { name: 'UserName', dataType: 'String', value: this.username },
-      { name: 'Password', dataType: 'String', value: this.password },
-    ]);
-    const xml = await this.post(body, 'Login');
-    const params = extractParameters(xml);
-    const status = firstNumber(params, 'Status');
-    if (status !== 0 && status !== null) {
-      throw new Error(
-        `OmniLogic login failed (Status=${status}). Check username/password.`,
-      );
-    }
-    const token = firstString(params, 'Token');
+    const resp = await this.auth.post(OMNILOGIC_AUTH_URL, {
+      email: this.username,
+      password: this.password,
+    });
+    this.applyAuthResponse(resp.data, 'login');
+  }
+
+  private async doRefresh(): Promise<void> {
+    const resp = await this.auth.post(OMNILOGIC_REFRESH_URL, {
+      refresh_token: this.refreshTokenValue,
+    });
+    this.applyAuthResponse(resp.data, 'refresh');
+  }
+
+  private applyAuthResponse(data: any, source: 'login' | 'refresh'): void {
+    const token = typeof data?.token === 'string' ? data.token : null;
+    const refreshToken =
+      typeof data?.refreshToken === 'string' ? data.refreshToken : null;
+    const userId =
+      typeof data?.userID === 'string'
+        ? data.userID
+        : typeof data?.userId === 'string'
+          ? data.userId
+          : null;
     if (!token) {
-      throw new Error('OmniLogic login returned no token.');
+      throw new Error(`OmniLogic auth (${source}) returned no token.`);
     }
     this.token = token;
-    this.userId =
-      firstString(params, 'UserID') ?? firstString(params, 'UserId');
+    this.refreshTokenValue = refreshToken ?? this.refreshTokenValue;
+    this.userId = userId ?? this.userId;
     this.tokenExpiresAt = Date.now() + TOKEN_TTL_MS;
-    this.log.info('OmniLogic: authenticated successfully.');
+    this.log.info(`OmniLogic: ${source} succeeded.`);
 
     if (this.tokenStore) {
-      await this.tokenStore.save({
-        v: 1,
-        token: this.token,
+      void this.tokenStore.save({
+        v: 2,
+        token,
+        refreshToken: this.refreshTokenValue,
         userId: this.userId,
         expiresAt: this.tokenExpiresAt,
         username: this.username,
@@ -140,12 +174,10 @@ export class OmniLogicApi {
   async getSiteList(): Promise<{ mspSystemId: number; backyardName: string }> {
     await this.ensureLogin();
     const xml = await this.callWithAuthRetry('GetSiteList', [
-      { name: 'Token', dataType: 'String', value: this.token! },
       { name: 'UserID', dataType: 'String', value: this.userId ?? '' },
     ]);
     const parsed = parseXml(xml);
-    const siteList =
-      deepFind(parsed, 'Site') ?? deepFind(parsed, 'List');
+    const siteList = deepFind(parsed, 'Site') ?? deepFind(parsed, 'List');
     const site = Array.isArray(siteList) ? siteList[0] : siteList;
     if (!site) {
       throw new Error('OmniLogic: no sites found on this account.');
@@ -163,7 +195,6 @@ export class OmniLogicApi {
   async getMspConfig(mspSystemId: number): Promise<BackyardTopology> {
     await this.ensureLogin();
     const xml = await this.callWithAuthRetry('GetMspConfigFile', [
-      { name: 'Token', dataType: 'String', value: this.token! },
       { name: 'MspSystemID', dataType: 'int', value: mspSystemId },
       { name: 'Version', dataType: 'String', value: '0' },
     ]);
@@ -177,7 +208,6 @@ export class OmniLogicApi {
   async getTelemetry(mspSystemId: number): Promise<TelemetrySnapshot> {
     await this.ensureLogin();
     const xml = await this.callWithAuthRetry('GetTelemetryData', [
-      { name: 'Token', dataType: 'String', value: this.token! },
       { name: 'MspSystemID', dataType: 'int', value: mspSystemId },
     ]);
     const inner =
@@ -194,7 +224,6 @@ export class OmniLogicApi {
     enabled: boolean,
   ): Promise<void> {
     await this.callMutation('SetHeaterEnable', [
-      { name: 'Token', dataType: 'String', value: this.token! },
       { name: 'MspSystemID', dataType: 'int', value: mspSystemId },
       { name: 'PoolID', dataType: 'int', value: bowId },
       { name: 'HeaterID', dataType: 'int', value: heaterId },
@@ -210,7 +239,6 @@ export class OmniLogicApi {
     temperature: number,
   ): Promise<void> {
     await this.callMutation('SetUIHeaterCmd', [
-      { name: 'Token', dataType: 'String', value: this.token! },
       { name: 'MspSystemID', dataType: 'int', value: mspSystemId },
       { name: 'PoolID', dataType: 'int', value: bowId },
       { name: 'HeaterID', dataType: 'int', value: heaterId },
@@ -226,7 +254,6 @@ export class OmniLogicApi {
     on: boolean,
   ): Promise<void> {
     await this.callMutation('SetUIEquipmentCmd', [
-      { name: 'Token', dataType: 'String', value: this.token! },
       { name: 'MspSystemID', dataType: 'int', value: mspSystemId },
       { name: 'PoolID', dataType: 'int', value: bowId },
       { name: 'EquipmentID', dataType: 'int', value: equipmentId },
@@ -243,7 +270,6 @@ export class OmniLogicApi {
   ): Promise<void> {
     const clamped = Math.max(0, Math.min(100, Math.round(speedPercent)));
     await this.callMutation('SetUIFilterSpeedCmd', [
-      { name: 'Token', dataType: 'String', value: this.token! },
       { name: 'MspSystemID', dataType: 'int', value: mspSystemId },
       { name: 'PoolID', dataType: 'int', value: bowId },
       { name: 'FilterID', dataType: 'int', value: filterId },
@@ -259,7 +285,6 @@ export class OmniLogicApi {
     show: number,
   ): Promise<void> {
     await this.callMutation('SetStandAloneLightShow', [
-      { name: 'Token', dataType: 'String', value: this.token! },
       { name: 'MspSystemID', dataType: 'int', value: mspSystemId },
       { name: 'PoolID', dataType: 'int', value: bowId },
       { name: 'LightID', dataType: 'int', value: lightId },
@@ -289,49 +314,67 @@ export class OmniLogicApi {
     params: RequestParameter[],
   ): Promise<string> {
     await this.ensureLogin();
-    const withFreshToken = (p: RequestParameter[]) =>
-      p.map((x) =>
-        x.name === 'Token' ? { ...x, value: this.token ?? '' } : x,
-      );
+    const tryOnce = () => this.post(name, params);
 
-    const tryOnce = async () =>
-      this.post(buildSoapRequest(name, withFreshToken(params)), name);
-
-    let xml = await tryOnce();
-    if (isAuthFailureXml(xml)) {
-      this.log.debug(`OmniLogic: ${name} got auth failure, refreshing token.`);
-      this.tokenExpiresAt = 0;
-      this.token = null;
-      if (this.tokenStore) {
-        await this.tokenStore.clear();
-      }
-      await this.login();
-      xml = await tryOnce();
+    let { status, body } = await tryOnce();
+    if (status === 401 || status === 403) {
+      this.log.debug(`OmniLogic: ${name} got HTTP ${status}, refreshing token.`);
+      await this.invalidateTokenAndReauth();
+      ({ status, body } = await tryOnce());
     }
-    return xml;
+    if (status < 200 || status >= 300) {
+      throw new Error(
+        `OmniLogic ${name} failed with HTTP ${status}: ${redactXml(body).slice(0, 300)}`,
+      );
+    }
+    return body;
   }
 
-  private async post(body: string, opName: string): Promise<string> {
+  private async invalidateTokenAndReauth(): Promise<void> {
+    this.tokenExpiresAt = 0;
+    this.token = null;
+    if (this.tokenStore) await this.tokenStore.clear();
+    if (this.refreshTokenValue) {
+      try {
+        await this.doRefresh();
+        return;
+      } catch {
+        this.refreshTokenValue = null;
+      }
+    }
+    await this.login();
+  }
+
+  private async post(
+    name: string,
+    params: RequestParameter[],
+  ): Promise<{ status: number; body: string }> {
+    const body = buildRequestXml(name, params);
+    const headers: Record<string, string> = {
+      'Content-Type': 'text/xml',
+      'cache-control': 'no-cache',
+    };
+    if (this.token) headers['Token'] = this.token;
+    const siteParam = params.find((p) => p.name === 'MspSystemID');
+    if (siteParam !== undefined) headers['SiteID'] = String(siteParam.value);
+
     if (this.debug) {
-      this.log.debug(`OmniLogic ${opName} request:\n` + redactXml(body));
+      this.log.debug(`OmniLogic ${name} request:\n` + redactXml(body));
     }
     try {
-      const resp = await this.http.post('', body);
+      const resp = await this.data.post('', body, { headers });
       const text =
         typeof resp.data === 'string' ? resp.data : String(resp.data);
       if (this.debug) {
-        this.log.debug(`OmniLogic ${opName} response:\n` + redactXml(text));
+        this.log.debug(
+          `OmniLogic ${name} response (HTTP ${resp.status}):\n` +
+            redactXml(text),
+        );
       }
-      return text;
+      return { status: resp.status, body: text };
     } catch (err: any) {
-      const detail = err?.response?.data
-        ? typeof err.response.data === 'string'
-          ? err.response.data.slice(0, 300)
-          : JSON.stringify(err.response.data).slice(0, 300)
-        : err?.code || err?.message;
-      throw new Error(
-        `OmniLogic ${opName} request failed: ${redactXml(String(detail))}`,
-      );
+      const detail = err?.code || err?.message || 'unknown error';
+      throw new Error(`OmniLogic ${name} transport error: ${detail}`);
     }
   }
 }

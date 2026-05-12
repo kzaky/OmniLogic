@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking (pre-1.0):** rewritten against Hayward's post-2025 cloud API.
+  The old `.asmx` SOAP endpoint at
+  `www.haywardomnilogic.com/HAAPI/HomeAutomation/HomeAutomationService.asmx`
+  was retired and now returns 404. The plugin now talks to:
+  - `services-gamma.haywardcloud.net/auth-service/v2/login` for REST/JSON
+    login (payload `{ email, password }`).
+  - `services-gamma.haywardcloud.net/auth-service/v2/refresh` for bearer
+    token refresh with the refresh token from login.
+  - `www.haywardomnilogic.com/HAAPI/HomeAutomation/API.ashx` for data, with
+    `Token` and `SiteID` HTTP headers and a plain `<Request>` XML body (no
+    SOAP envelope).
+- The required `X-HAYWARD-APP-ID` header is sent on auth requests.
+- Auth-retry triggers on HTTP 401/403 (the old XML in-body status check is
+  no longer the failure signal).
+- Token cache bumped to `v: 2` to add `refreshToken`; v1 caches are ignored
+  on load, forcing one re-login after upgrade.
+- `buildSoapRequest` renamed to `buildRequestXml`; `isAuthFailureXml`
+  removed.
+
 ## [0.1.0-beta.1] - 2026-05-11
 
 First public beta. Published under the `beta` dist-tag while real-world
