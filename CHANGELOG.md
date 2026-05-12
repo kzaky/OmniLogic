@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.3] - 2026-05-12
+
+### Fixed
+
+- `getSiteList` was looking for `<Site>` elements in the response. The
+  post-2025 API returns sites as `<Item>` containers whose child
+  elements are identified by a `name` attribute regardless of element
+  tag. Now walks the response with a generic `namedChildren` helper
+  matching djtimca/omnilogic-api's traversal.
+
+### Changed
+
+- Debug-mode request/response logging now uses `log.info` instead of
+  `log.debug`. Homebridge suppresses `debug`-level output unless run
+  with `-D`, which meant the `debug: true` config option produced no
+  visible output. Now opting in actually surfaces the XML traffic.
+
 ## [0.1.0-beta.2] - 2026-05-12
 
 ### Changed

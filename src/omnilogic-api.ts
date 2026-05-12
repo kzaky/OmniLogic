@@ -18,6 +18,8 @@ import {
   extractEmbeddedPayload,
   extractParameters,
   firstNumber,
+  firstString,
+  namedChildren,
   parseXml,
   redactXml,
 } from './xml-utils';
@@ -177,18 +179,18 @@ export class OmniLogicApi {
       { name: 'UserID', dataType: 'String', value: this.userId ?? '' },
     ]);
     const parsed = parseXml(xml);
-    const siteList = deepFind(parsed, 'Site') ?? deepFind(parsed, 'List');
-    const site = Array.isArray(siteList) ? siteList[0] : siteList;
-    if (!site) {
+    const items = deepFind(parsed, 'Item');
+    const item = Array.isArray(items) ? items[0] : items;
+    if (!item) {
       throw new Error('OmniLogic: no sites found on this account.');
     }
-    const mspSystemId = Number(
-      deepFind(site, 'MspSystemID') ?? deepFind(site, 'MspSystemId'),
-    );
-    if (!Number.isFinite(mspSystemId)) {
+    const fields = namedChildren(item);
+    const mspSystemId =
+      firstNumber(fields, 'MspSystemID') ?? firstNumber(fields, 'MspSystemId');
+    if (mspSystemId == null) {
       throw new Error('OmniLogic: site list response missing MspSystemID.');
     }
-    const backyardName = String(deepFind(site, 'BackyardName') ?? 'OmniLogic');
+    const backyardName = firstString(fields, 'BackyardName') ?? 'OmniLogic';
     return { mspSystemId, backyardName };
   }
 
@@ -359,14 +361,14 @@ export class OmniLogicApi {
     if (siteParam !== undefined) headers['SiteID'] = String(siteParam.value);
 
     if (this.debug) {
-      this.log.debug(`OmniLogic ${name} request:\n` + redactXml(body));
+      this.log.info(`OmniLogic ${name} request:\n` + redactXml(body));
     }
     try {
       const resp = await this.data.post('', body, { headers });
       const text =
         typeof resp.data === 'string' ? resp.data : String(resp.data);
       if (this.debug) {
-        this.log.debug(
+        this.log.info(
           `OmniLogic ${name} response (HTTP ${resp.status}):\n` +
             redactXml(text),
         );

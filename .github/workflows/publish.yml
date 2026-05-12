@@ -59,3 +59,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
+      - name: Also move latest on pre-1.0 betas
+        if: |
+          (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry-run == false))
+          && steps.disttag.outputs.tag == 'beta'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "$VERSION" == 0.* ]]; then
+            npm dist-tag add "homebridge-omnilogic-pool@$VERSION" latest
+            echo "latest now points at $VERSION"
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
