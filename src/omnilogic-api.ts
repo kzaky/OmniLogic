@@ -182,12 +182,20 @@ export class OmniLogicApi {
     const items = deepFind(parsed, 'Item');
     const item = Array.isArray(items) ? items[0] : items;
     if (!item) {
+      this.log.warn(
+        'OmniLogic GetSiteList response (first 1000 chars, redacted):\n' +
+          redactXml(xml).slice(0, 1000),
+      );
       throw new Error('OmniLogic: no sites found on this account.');
     }
     const fields = namedChildren(item);
     const mspSystemId =
       firstNumber(fields, 'MspSystemID') ?? firstNumber(fields, 'MspSystemId');
     if (mspSystemId == null) {
+      this.log.warn(
+        'OmniLogic GetSiteList item missing MspSystemID (first 1000 chars):\n' +
+          redactXml(xml).slice(0, 1000),
+      );
       throw new Error('OmniLogic: site list response missing MspSystemID.');
     }
     const backyardName = firstString(fields, 'BackyardName') ?? 'OmniLogic';
