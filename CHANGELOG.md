@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-12
+
+### Fixed
+
+- **Config schema validation** for Homebridge verification. The `required`
+  flag was set as a boolean on individual fields (`name`, `username`,
+  `password`), which is invalid JSON Schema and was rejected by the
+  Homebridge plugin-verification bot. Moved to a top-level
+  `"required": ["name", "username", "password"]` array.
+
+### Changed
+
+- **Publish workflow now creates a GitHub Release** on every tag push.
+  Required for Homebridge verification ("GitHub Repo: should contain
+  releases"). Release notes are auto-extracted from the matching
+  CHANGELOG section; prereleases are marked as such.
+
 ## [1.0.0] - 2026-05-12
 
 First stable release. All features validated against real hardware.
