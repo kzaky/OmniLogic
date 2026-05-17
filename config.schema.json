@@ -6,24 +6,22 @@
   "footerDisplay": "For help, file an issue at https://github.com/kzaky/OmniLogic/issues.",
   "schema": {
     "type": "object",
+    "required": ["name", "username", "password"],
     "properties": {
       "name": {
         "title": "Platform Name",
         "type": "string",
-        "default": "OmniLogic Pool",
-        "required": true
+        "default": "OmniLogic Pool"
       },
       "username": {
         "title": "OmniLogic Username (email)",
         "type": "string",
-        "format": "email",
-        "required": true
+        "format": "email"
       },
       "password": {
         "title": "OmniLogic Password",
         "type": "string",
         "format": "password",
-        "required": true,
         "description": "Stored in plain text in Homebridge config.json. Treat your Homebridge config file accordingly."
       },
       "pollIntervalSeconds": {
