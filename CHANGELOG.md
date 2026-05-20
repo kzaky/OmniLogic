@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-05-20
+
+### Fixed
+
+- The 1.0.1 publish workflow failed before npm publish — root cause not
+  fully identified from sandbox without log access, but `package-lock.json`
+  was out of sync with `package.json` (still at 1.0.0). Re-syncing the
+  lockfile and bumping again.
+
 ## [1.0.1] - 2026-05-12
 
 ### Fixed
