@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-07-19
+
+### Security
+
+- Resolved advisories in the dependency tree via lockfile updates:
+  `shell-quote` (critical, via `concurrently`), `form-data` (high, via
+  `axios`), `esbuild` (via `tsx`), and `js-yaml` — all dev/transitive,
+  no runtime code change. Remaining `fast-xml-parser` advisory is
+  XMLBuilder-only; this plugin uses `XMLParser` exclusively, so it does
+  not apply.
+
+### Changed
+
+- Raised the `axios` floor to `^1.18.1` (latest 1.x; pulls in the patched
+  `form-data`).
+
+### Added
+
+- Verified by Homebridge badge in the README.
+
 ## [1.0.2] - 2026-05-20
 
 ### Fixed

@@ -1,5 +1,7 @@
 # homebridge-omnilogic-pool
 
+[![verified-by-homebridge](https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=for-the-badge&logoColor=%23FFFFFF&logo=homebridge)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+
 A modern [Homebridge](https://homebridge.io) plugin for the
 **Hayward OmniLogic** pool/spa controller.
 
