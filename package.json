@@ -13,6 +13,12 @@
     "url": "https://github.com/kzaky/OmniLogic/issues"
   },
   "homepage": "https://github.com/kzaky/OmniLogic#readme",
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/kzaky"
+    }
+  ],
   "keywords": [
     "homebridge-plugin",
     "hayward",
