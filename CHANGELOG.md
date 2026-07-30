@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-07-30
+
 ### Added
 
 - Donation links (GitHub Sponsors) via the `funding` field, enabling the
   ❤️ Donate button on the plugin tile in the Homebridge UI, plus a repo
   `.github/FUNDING.yml` Sponsor button.
+- Sponsor badge in the README, next to the Verified by Homebridge badge.
 
 ## [1.0.3] - 2026-07-19
 
